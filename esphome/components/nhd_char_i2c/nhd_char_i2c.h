@@ -1,13 +1,13 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#include "esphome/components/lcd_base/lcd_display.h"
+#include "esphome/components/nhd_char_base/nhd_char_base.h"
 #include "esphome/components/i2c/i2c.h"
 
 namespace esphome {
 namespace nhd_char_i2c {
 
-class NhdCharI2cLcd : public nhd_char_base::Lcd, public i2c::I2CDevice {
+class NhdCharI2cLcd : public nhd_char_base::LCDDisplay, public i2c::I2CDevice {
  public:
   void set_writer(std::function<void(NhdCharI2cLcd &)> &&writer) { this->writer_ = std::move(writer); }
   void setup() override;

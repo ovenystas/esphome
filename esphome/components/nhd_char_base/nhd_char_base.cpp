@@ -1,165 +1,196 @@
-#include "lcd_display.h"
+#include "nhd_char_base.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
+#include <cstring>
 
 namespace esphome {
 namespace nhd_char_base {
 
 static const char *const TAG = "lcd";
 
+struct Command {
+  uint8_t cmd;
+  uint16_t exec_time_us;
+};
+
 // First set bit determines command, bits after that are the data.
-static const uint8_t LCD_DISPLAY_COMMAND_CLEAR_DISPLAY = 0x01;
-static const uint8_t LCD_DISPLAY_COMMAND_RETURN_HOME = 0x02;
-static const uint8_t LCD_DISPLAY_COMMAND_ENTRY_MODE_SET = 0x04;
-static const uint8_t LCD_DISPLAY_COMMAND_DISPLAY_CONTROL = 0x08;
-static const uint8_t LCD_DISPLAY_COMMAND_CURSOR_SHIFT = 0x10;
-static const uint8_t LCD_DISPLAY_COMMAND_FUNCTION_SET = 0x20;
-static const uint8_t LCD_DISPLAY_COMMAND_SET_CGRAM_ADDR = 0x40;
-static const uint8_t LCD_DISPLAY_COMMAND_SET_DDRAM_ADDR = 0x80;
+static const uint8_t COMMAND_PREFIX = 0xFE;
 
-static const uint8_t LCD_DISPLAY_ENTRY_SHIFT_INCREMENT = 0x01;
-static const uint8_t LCD_DISPLAY_ENTRY_LEFT = 0x02;
+static const Command COMMAND_DISPLAY_ON = { 0x41, 100u };
+static const Command COMMAND_DISPLAY_OFF = { 0x42, 100u };
+static const Command COMMAND_SET_CURSOR = { 0x45, 100u };
+static const Command COMMAND_CURSOR_HOME = { 0x46, 1500u };
+static const Command COMMAND_UNDERLINE_CURSOR_ON = { 0x47, 1500u };
+static const Command COMMAND_UNDERLINE_CURSOR_OFF = { 0x48, 1500u };
+static const Command COMMAND_MOVE_CURSOR_LEFT = { 0x49, 100u };
+static const Command COMMAND_MOVE_CURSOR_RIGHT = { 0x4A, 100u };
+static const Command COMMAND_BLINKING_CURSOR_ON = { 0x4B, 100u };
+static const Command COMMAND_BLINKING_CURSOR_OFF = { 0x4C, 100u };
+static const Command COMMAND_BACKSPACE = { 0x4E, 100u };
+static const Command COMMAND_CLEAR_SCREEN = { 0x51, 1500u };
+static const Command COMMAND_SET_CONTRAST = { 0x52, 500u };
+static const Command COMMAND_SET_BACKLIGHT_BRIGHTNESS = { 0x53, 100u };
+static const Command COMMAND_LOAD_CUSTOM_CHARACTER = { 0x54, 200u };
+static const Command COMMAND_MOVE_DISPLAY_LEFT = { 0x55, 100u };
+static const Command COMMAND_MOVE_DISPLAY_RIGHT = { 0x56, 100u };
+static const Command COMMAND_CHANGE_RS232_BAUD_RATE = { 0x61, 3000u };
+static const Command COMMAND_CHANGE_I2C_ADDRESS = { 0x62, 3000u };
+static const Command COMMAND_DISPLAY_FIRMWARE_VERSION = { 0x70, 4000u };
+static const Command COMMAND_DISPLAY_RS232ADDRESS = { 0x71, 10000u };
+static const Command COMMAND_DISPLAY_I2C_ADDRESS = { 0x72, 4000u };
 
-static const uint8_t LCD_DISPLAY_DISPLAY_BLINK_ON = 0x01;
-static const uint8_t LCD_DISPLAY_DISPLAY_CURSOR_ON = 0x02;
-static const uint8_t LCD_DISPLAY_DISPLAY_ON = 0x04;
+void NhdChar::setup() {
+  this->buffer_ = new uint8_t[this->positions_];  // NOLINT
+  this->clear();
 
-static const uint8_t LCD_DISPLAY_FUNCTION_8_BIT_MODE = 0x10;
-static const uint8_t LCD_DISPLAY_FUNCTION_2_LINE = 0x08;
-static const uint8_t LCD_DISPLAY_FUNCTION_5X10_DOTS = 0x04;
-
-void LCDDisplay::setup() {
-  this->buffer_ = new uint8_t[this->rows_ * this->columns_];  // NOLINT
-  for (uint8_t i = 0; i < this->rows_ * this->columns_; i++)
-    this->buffer_[i] = ' ';
-
-  uint8_t display_function = 0;
-
-  if (!this->is_four_bit_mode())
-    display_function |= LCD_DISPLAY_FUNCTION_8_BIT_MODE;
-
-  if (this->rows_ > 1)
-    display_function |= LCD_DISPLAY_FUNCTION_2_LINE;
-
-  // TODO dotsize
-
-  // Commands can only be sent 40ms after boot-up, so let's wait if we're close
+  // Commands can only be sent 100ms after boot-up, so let's wait if we're close
   const uint8_t now = millis();
-  if (now < 40)
-    delay(40u - now);
-
-  if (this->is_four_bit_mode()) {
-    this->write_n_bits(0x03, 4);
-    delay(5);  // 4.1ms
-    this->write_n_bits(0x03, 4);
-    delay(5);
-    this->write_n_bits(0x03, 4);
-    delayMicroseconds(150);
-    this->write_n_bits(0x02, 4);
-  } else {
-    this->command_(LCD_DISPLAY_COMMAND_FUNCTION_SET | display_function);
-    delay(5);  // 4.1ms
-    this->command_(LCD_DISPLAY_COMMAND_FUNCTION_SET | display_function);
-    delayMicroseconds(150);
-    this->command_(LCD_DISPLAY_COMMAND_FUNCTION_SET | display_function);
+  if (now < 100) {
+    delay(100u - now);
   }
 
-  this->command_(LCD_DISPLAY_COMMAND_FUNCTION_SET | display_function);
-  uint8_t display_control = LCD_DISPLAY_DISPLAY_ON;
-  this->command_(LCD_DISPLAY_COMMAND_DISPLAY_CONTROL | display_control);
+  this->command_(COMMAND_CLEAR_SCREEN);
+  this->command_(COMMAND_SET_CONTRAST, 40u);
+  this->set_backlight(8u);
+  this->backlight();
+  this->command_(COMMAND_UNDERLINE_CURSOR_OFF);
 
-  // clear display, also sets DDRAM address to 0 (home)
-  this->command_(LCD_DISPLAY_COMMAND_CLEAR_DISPLAY);
-  delay(2);  // 1.52ms
+  this->print("NewHaven Display\n"
+              "Serial LCD Demo");
+  delay(1000u);
 
-  uint8_t entry_mode = LCD_DISPLAY_ENTRY_LEFT;
-  this->command_(LCD_DISPLAY_COMMAND_ENTRY_MODE_SET | entry_mode);  // 37µs
+  this->command_(COMMAND_DISPLAY_FIRMWARE_VERSION);
+  delay(1000u);
 
-  this->command_(LCD_DISPLAY_COMMAND_RETURN_HOME);
-  delay(2);  // 1.52ms
+  this->command_(COMMAND_DISPLAY_I2C_ADDRESS);
+  delay(1000u);
+
+  this->command_(COMMAND_CLEAR_SCREEN);
 }
 
-float LCDDisplay::get_setup_priority() const { return setup_priority::PROCESSOR; }
-void HOT LCDDisplay::display() {
-  this->command_(LCD_DISPLAY_COMMAND_SET_DDRAM_ADDR | 0);
+float NhdChar::get_setup_priority() const {
+  return setup_priority::PROCESSOR;
+}
 
-  for (uint8_t i = 0; i < this->columns_; i++)
-    this->send(this->buffer_[i], true);
+void HOT NhdChar::display() {
+  uint8_t* buf = this->buffer_;
 
-  if (this->rows_ >= 3) {
-    for (uint8_t i = 0; i < this->columns_; i++)
-      this->send(this->buffer_[this->columns_ * 2 + i], true);
-  }
-
-  if (this->rows_ >= 1) {
-    this->command_(LCD_DISPLAY_COMMAND_SET_DDRAM_ADDR | 0x40);
-
-    for (uint8_t i = 0; i < this->columns_; i++)
-      this->send(this->buffer_[this->columns_ + i], true);
-
-    if (this->rows_ >= 4) {
-      for (uint8_t i = 0; i < this->columns_; i++)
-        this->send(this->buffer_[this->columns_ * 3 + i], true);
+  for (uint8_t row = 0; row < this->rows_; ++row) {
+    for (uint8_t column = 0; column < this->columns_; ++column) {
+      this->send(*buf++);
     }
   }
 }
-void LCDDisplay::update() {
+
+void NhdChar::update() {
   this->clear();
   this->call_writer();
   this->display();
 }
-void LCDDisplay::command_(uint8_t value) { this->send(value, false); }
-void LCDDisplay::print(uint8_t column, uint8_t row, const char *str) {
-  uint8_t pos = column + row * this->columns_;
+
+void NhdChar::command_(Command cmd, uint8_t* params, size_t length) {
+  this->send(COMMAND_PREFIX);
+  this->send(cmd.cmd);
+  while (length--) {
+    this->send(*params++);
+  };
+  delayMicroseconds(cmd.exec_time_us);
+}
+
+void NhdChar::command_(Command cmd, uint8_t param1) {
+  this->command_(cmd, &param1, 1);
+}
+
+void NhdChar::command_(Command cmd) {
+  this->command_(cmd, nullptr, 0);
+}
+
+void NhdChar::print(uint8_t column, uint8_t row, const char *str) {
+  uint8_t pos = row * this->columns_ + column;
   for (; *str != '\0'; str++) {
     if (*str == '\n') {
       pos = ((pos / this->columns_) + 1) * this->columns_;
       continue;
     }
-    if (pos >= this->rows_ * this->columns_) {
-      ESP_LOGW(TAG, "LCDDisplay writing out of range!");
+
+    if (pos >= this->positions_) {
+      ESP_LOGW(TAG, "NhdChar writing out of range!");
       break;
     }
 
-    this->buffer_[pos] = *reinterpret_cast<const uint8_t *>(str);
-    pos++;
+    this->buffer_[pos++] = *reinterpret_cast<const uint8_t*>(str);
   }
 }
-void LCDDisplay::print(uint8_t column, uint8_t row, const std::string &str) { this->print(column, row, str.c_str()); }
-void LCDDisplay::print(const char *str) { this->print(0, 0, str); }
-void LCDDisplay::print(const std::string &str) { this->print(0, 0, str.c_str()); }
-void LCDDisplay::printf(uint8_t column, uint8_t row, const char *format, ...) {
+
+void NhdChar::print(uint8_t column, uint8_t row, const std::string &str) {
+  this->print(column, row, str.c_str());
+}
+
+void NhdChar::print(const char *str) {
+  this->print(0, 0, str);
+}
+
+void NhdChar::print(const std::string &str) {
+  this->print(0, 0, str.c_str());
+}
+
+void NhdChar::printf(uint8_t column, uint8_t row, const char *format, ...) {
   va_list arg;
   va_start(arg, format);
   char buffer[256];
   int ret = vsnprintf(buffer, sizeof(buffer), format, arg);
   va_end(arg);
-  if (ret > 0)
+
+  if (ret > 0) {
     this->print(column, row, buffer);
+  }
 }
-void LCDDisplay::printf(const char *format, ...) {
+
+void NhdChar::printf(const char *format, ...) {
   va_list arg;
   va_start(arg, format);
   char buffer[256];
   int ret = vsnprintf(buffer, sizeof(buffer), format, arg);
   va_end(arg);
-  if (ret > 0)
+
+  if (ret > 0) {
     this->print(0, 0, buffer);
+  }
 }
-void LCDDisplay::clear() {
-  for (uint8_t i = 0; i < this->rows_ * this->columns_; i++)
-    this->buffer_[i] = ' ';
+
+void NhdChar::clear() {
+  ::memset(this->buffer_, ' ', this->positions_);
 }
+
 #ifdef USE_TIME
-void LCDDisplay::strftime(uint8_t column, uint8_t row, const char *format, time::ESPTime time) {
+void NhdChar::strftime(uint8_t column, uint8_t row, const char *format, time::ESPTime time) {
   char buffer[64];
   size_t ret = time.strftime(buffer, sizeof(buffer), format);
-  if (ret > 0)
+
+  if (ret > 0) {
     this->print(column, row, buffer);
+  }
 }
-void LCDDisplay::strftime(const char *format, time::ESPTime time) { this->strftime(0, 0, format, time); }
+
+void NhdChar::strftime(const char *format, time::ESPTime time) {
+  this->strftime(0, 0, format, time);
+}
 #endif
+
+void NhdChar::backlight() {
+  this->command_(COMMAND_SET_BACKLIGHT_BRIGHTNESS, this->backlight_value_);
+}
+
+void NhdChar::no_backlight() {
+  this->command_(COMMAND_SET_BACKLIGHT_BRIGHTNESS, 1);
+}
+
+void NhdChar::set_backlight(uint8_t value) {
+  if (value >= 1 && value <= 8) {
+    this->backlight_value_ = value;
+  }
+}
 
 }  // namespace nhd_char_base
 }  // namespace esphome

@@ -8,7 +8,7 @@ AUTO_LOAD = ["nhd_char_lcd"]
 
 nhd_char_lcd_i2c_ns = cg.esphome_ns.namespace("nhd_char_lcd_i2c")
 NhdCharLcdI2c = nhd_char_lcd_i2c_ns.class_(
-    "NhdCharLcdI2c", nhd_char_lcd.Lcd, i2c.I2CDevice
+    "NhdCharLcdI2c", nhd_char_lcd.NhdCharLcd, i2c.I2CDevice
 )
 
 CONFIG_SCHEMA = nhd_char_lcd.LCD_SCHEMA.extend(

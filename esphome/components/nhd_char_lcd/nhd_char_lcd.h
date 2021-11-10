@@ -114,8 +114,8 @@ class NhdCharLcd : public PollingComponent {
   bool command_(Command cmd, uint8_t* params, size_t length);
 
  protected:
-  bool send(uint8_t* data, uint8_t len) = 0;
-  bool send_command(uint8_t cmd, uint8_t* data, uint8_t len) = 0;
+  virtual bool send(uint8_t* data, uint8_t len) = 0;
+  virtual bool send_command(uint8_t cmd, uint8_t* data, uint8_t len) = 0;
   virtual void call_writer() = 0;
 
 

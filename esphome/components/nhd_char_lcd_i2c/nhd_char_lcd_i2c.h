@@ -16,8 +16,8 @@ class NhdCharLcdI2c : public nhd_char_lcd::NhdCharLcd, public i2c::I2CDevice {
   void dump_config() override;
 
  protected:
-  bool send(uint8_t* data, uint8_t len);
-  bool send_command(uint8_t cmd, uint8_t* data, uint8_t len);
+  bool send(uint8_t* data, uint8_t len) override;
+  bool send_command(uint8_t cmd, uint8_t* data, uint8_t len) override;
 
   void call_writer() override {
     this->writer_(*this);

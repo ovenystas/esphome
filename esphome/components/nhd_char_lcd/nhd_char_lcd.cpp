@@ -55,10 +55,10 @@ void NhdCharLcd::setup() {
 
   this->clear_screen();
   this->set_contrast(40u);
-  this->set_backlight(8u);
+  this->set_backlight(2u);
   this->underline_cursor_off();
 
-  this->print("NewHaven Display\n"
+  this->print("NewHaven Display"
               "Serial LCD Demo");
   delay(5000u);
 
@@ -76,7 +76,10 @@ float NhdCharLcd::get_setup_priority() const {
 }
 
 void HOT NhdCharLcd::display() {
-  this->send(this->buffer_, this->positions_);
+  for (uint8_t row = 0; row < this->rows_; ++row) {
+    this->set_cursor(row, 0);
+    this->send(&this->buffer_[row * this->columns_], this->columns_);
+  }
 }
 
 void NhdCharLcd::update() {
@@ -182,13 +185,14 @@ void NhdCharLcd::display_off(void) {
 }
 
 /**
- * row 1 to number-of-rows
- * column 1 to number-of-columns
+ * row 0 to (number-of-rows - 1)
+ * column 0 to (number-of-columns - 1)
  */
 void NhdCharLcd::set_cursor(uint8_t row, uint8_t column) {
-  if (row > 0 && row <= this->rows_ &&
-      column > 0 && column <= this->columns_) {
-    uint8_t pos = (row - 1) * 0x40u + (column - 1);
+  uint8_t row_start_value[4] = { 0x00, 0x40, 0x14, 0x54 };
+
+  if (row < this->rows_ && column < this->columns_) {
+    uint8_t pos = row_start_value[row] + column;
     this->command_(COMMAND_SET_CURSOR, pos);
   }
 }

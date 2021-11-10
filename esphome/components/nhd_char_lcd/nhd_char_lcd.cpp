@@ -60,13 +60,13 @@ void NhdCharLcd::setup() {
 
   this->print("NewHaven Display\n"
               "Serial LCD Demo");
-  delay(1000u);
+  delay(5000u);
 
   this->display_firmware_version();
-  delay(1000u);
+  delay(5000u);
 
   this->display_i2c_address();
-  delay(1000u);
+  delay(5000u);
 
   this->clear_screen();
 }

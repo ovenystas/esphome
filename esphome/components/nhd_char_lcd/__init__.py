@@ -3,8 +3,8 @@ import esphome.config_validation as cv
 from esphome.components import display
 from esphome.const import CONF_DIMENSIONS
 
-nhd_char_base_ns = cg.esphome_ns.namespace("nhd_char_base")
-NhdChar = nhd_char_base_ns.class_("LCDDisplay", cg.PollingComponent)
+nhd_char_lcd_ns = cg.esphome_ns.namespace("nhd_char_lcd")
+NhdCharLcd = nhd_char_lcd_ns.class_("LCDDisplay", cg.PollingComponent)
 
 
 def validate_lcd_dimensions(value):

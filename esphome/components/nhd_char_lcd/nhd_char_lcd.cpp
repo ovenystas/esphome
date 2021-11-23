@@ -7,7 +7,7 @@
 namespace esphome {
 namespace nhd_char_lcd {
 
-static const char *const TAG = "lcd";
+static const char *const TAG = "nhd_char_lcd";
 
 struct Command {
   uint8_t cmd;            // Command byte
@@ -37,13 +37,27 @@ static const Command COMMAND_DISPLAY_FIRMWARE_VERSION = { 0x70, 4000u };
 static const Command COMMAND_DISPLAY_RS232_BAUD_RATE = { 0x71, 10000u };
 static const Command COMMAND_DISPLAY_I2C_ADDRESS = { 0x72, 4000u };
 
+static const uint16_t PRINT_EXEC_TIME_US = 100u;
+static const uint8_t COLUMNS_MAX = 64u;
+static const uint8_t ROWS_MAX = 4u;
+
+void NhdCharLcd::set_dimensions(uint8_t columns, uint8_t rows) {
+  if (columns <= COLUMNS_MAX && rows <= ROWS_MAX) {
+    this->columns_ = columns;
+    this->rows_ = rows;
+    this->positions_ = columns * rows;
+  } else {
+    ESP_LOGW(TAG, "NhdCharLcd set_dimensions, out of range!");
+  }
+}
+
 void NhdCharLcd::setup() {
   this->buffer_ = new uint8_t[this->positions_];  // NOLINT
-  this->clear();
+  this->clear_buffer();
 
   // Commands can only be sent 100ms after boot-up, so let's wait if not passed
-  const uint8_t now = millis();
-  if (now < 100) {
+  const uint32_t now = millis();
+  if (now < 100u) {
     delay(100u - now);
   }
 
@@ -52,21 +66,6 @@ void NhdCharLcd::setup() {
     this->mark_failed();
     return;
   }
-
-  this->clear_screen();
-  this->set_contrast(40u);
-  this->set_backlight(2u);
-  this->underline_cursor_off();
-
-  this->print("NewHaven Display"
-              "Serial LCD Demo");
-  delay(5000u);
-
-  this->display_firmware_version();
-  delay(5000u);
-
-  this->display_i2c_address();
-  delay(5000u);
 
   this->clear_screen();
 }
@@ -80,10 +79,11 @@ void HOT NhdCharLcd::display() {
     this->set_cursor(row, 0);
     this->send(&this->buffer_[row * this->columns_], this->columns_);
   }
+  delayMicroseconds(PRINT_EXEC_TIME_US);
 }
 
 void NhdCharLcd::update() {
-  this->clear();
+  this->clear_buffer();
   this->call_writer();
   this->display();
 }
@@ -113,7 +113,7 @@ void NhdCharLcd::print(uint8_t column, uint8_t row, const char *str) {
     }
 
     if (pos >= this->positions_) {
-      ESP_LOGW(TAG, "NhdCharLcd writing out of range!");
+      ESP_LOGW(TAG, "NhdCharLcd print, out of range!");
       break;
     }
 
@@ -157,7 +157,7 @@ void NhdCharLcd::printf(const char *format, ...) {
   }
 }
 
-void NhdCharLcd::clear() {
+void NhdCharLcd::clear_buffer() {
   ::memset(this->buffer_, ' ', this->positions_);
 }
 
@@ -176,24 +176,23 @@ void NhdCharLcd::strftime(const char *format, time::ESPTime time) {
 }
 #endif
 
-void NhdCharLcd::display_on(void) {
+void NhdCharLcd::display_on() {
   this->command_(COMMAND_DISPLAY_ON);
 }
 
-void NhdCharLcd::display_off(void) {
+void NhdCharLcd::display_off() {
   this->command_(COMMAND_DISPLAY_OFF);
 }
 
-/**
- * row 0 to (number-of-rows - 1)
- * column 0 to (number-of-columns - 1)
- */
-void NhdCharLcd::set_cursor(uint8_t row, uint8_t column) {
-  uint8_t row_start_value[4] = { 0x00, 0x40, 0x14, 0x54 };
+void NhdCharLcd::set_cursor(uint8_t column, uint8_t row) {
+  const uint8_t row_start_value[4] = { 0x00, 0x40, 0x14, 0x54 };
 
   if (row < this->rows_ && column < this->columns_) {
     uint8_t pos = row_start_value[row] + column;
     this->command_(COMMAND_SET_CURSOR, pos);
+  }
+  else {
+    ESP_LOGW(TAG, "NhdCharLcd set_cursor, out of range!");
   }
 }
 
@@ -233,12 +232,11 @@ void NhdCharLcd::clear_screen() {
   this->command_(COMMAND_CLEAR_SCREEN);
 }
 
-/**
- * contrast 1-50
- */
 void NhdCharLcd::set_contrast(uint8_t contrast) {
   if (contrast >= 1 && contrast <= 50) {
     this->command_(COMMAND_SET_CONTRAST, contrast);
+  } else {
+    ESP_LOGW(TAG, "NhdCharLcd set_contrast, out of range!");
   }
 }
 
@@ -254,14 +252,20 @@ void NhdCharLcd::set_backlight(uint8_t value) {
   if (value >= 1 && value <= 8) {
     this->backlight_value_ = value;
     this->backlight_on();
+  } else {
+    ESP_LOGW(TAG, "NhdCharLcd set_backlight, out of range!");
   }
 }
 
 void NhdCharLcd::load_custom_character(uint8_t addr,
     uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
     uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7) {
-  uint8_t character[8] = { d0, d1, d2, d3, d4, d5, d6, d7 };
-  this->command_(COMMAND_LOAD_CUSTOM_CHARACTER, character, 9);
+  if (addr < 8) {
+    uint8_t character[9] = { addr, d0, d1, d2, d3, d4, d5, d6, d7 };
+    this->command_(COMMAND_LOAD_CUSTOM_CHARACTER, character, 9);
+  } else {
+    ESP_LOGW(TAG, "NhdCharLcd load_custom_character, addr out of range!");
+  }
 }
 
 void NhdCharLcd::move_display_left() {
@@ -273,38 +277,31 @@ void NhdCharLcd::move_display_right() {
 }
 
 /**
- * baud_rate_id 1-8 maps to one of
- *              300, 1200, 2400, 9600, 14400, 19200, 57600, 115200
- */
-void NhdCharLcd::change_rs232_baud_rate(uint8_t baud_rate_id) {
-  if (baud_rate_id >= 1 && baud_rate_id <= 8) {
-    this->command_(COMMAND_CHANGE_RS232_BAUD_RATE, baud_rate_id);
-  }
-}
-
-/**
  * baud_rate 300, 1200, 2400, 9600, 14400, 19200, 57600 or 115200
  */
 void NhdCharLcd::change_rs232_baud_rate(uint32_t baud_rate) {
   uint8_t id;
-  if (baud_rate == 300) { id = 1; }
-  else if (baud_rate == 1200) { id = 2; }
-  else if (baud_rate == 2400) { id = 3; }
-  else if (baud_rate == 9600) { id = 4; }
-  else if (baud_rate == 14400) { id = 5; }
-  else if (baud_rate == 19200) { id = 6; }
-  else if (baud_rate == 57600) { id = 7; }
-  else if (baud_rate == 115200) { id = 8; }
-  else { return; }
+  switch (baud_rate) {
+    case    300: id = 1; break;
+    case   1200: id = 2; break;
+    case   2400: id = 3; break;
+    case   9600: id = 4; break;
+    case  14400: id = 5; break;
+    case  19200: id = 6; break;
+    case  57600: id = 7; break;
+    case 115200: id = 8; break;
+    default:
+      ESP_LOGW(TAG, "NhdCharLcd change_rs232_baud_rate, invalid baud rate!");
+      return;
+  }
   this->command_(COMMAND_CHANGE_RS232_BAUD_RATE, id);
 }
 
-/**
- * addr must be an even number
- */
 void NhdCharLcd::change_i2c_address(uint8_t addr) {
   if ((addr & 0x01u) == 0) {
     this->command_(COMMAND_CHANGE_I2C_ADDRESS, addr);
+  } else {
+    ESP_LOGW(TAG, "NhdCharLcd change_i2c_address, invalid address!");
   }
 }
 

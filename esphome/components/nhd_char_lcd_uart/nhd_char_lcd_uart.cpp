@@ -11,7 +11,7 @@ static const uint8_t COMMAND_PREFIX = 0xFE;
 
 
 void NhdCharLcdUart::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up Newhaven LCD...");
+  ESP_LOGCONFIG(TAG, "Setting up Newhaven LCD over UART ...");
   NhdCharLcd::setup();
 }
 

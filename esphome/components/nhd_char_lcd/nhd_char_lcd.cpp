@@ -76,7 +76,7 @@ float NhdCharLcd::get_setup_priority() const {
 
 void HOT NhdCharLcd::display() {
   for (uint8_t row = 0; row < this->rows_; ++row) {
-    this->set_cursor(row, 0);
+    this->set_cursor(0, row);
     this->send(&this->buffer_[row * this->columns_], this->columns_);
   }
   delayMicroseconds(PRINT_EXEC_TIME_US);
@@ -89,6 +89,13 @@ void NhdCharLcd::update() {
 }
 
 bool NhdCharLcd::command_(Command cmd, uint8_t* params, size_t length) {
+  uint8_t param = 0;
+  if (params != nullptr) {
+    param = params[0];
+  }
+  ESP_LOGD(TAG,
+      "command_, cmd=%u,%u, params=0x%02x",
+      cmd.cmd, cmd.exec_time_us, param);
   if (!this->send_command(cmd.cmd, params, static_cast<uint8_t>(length))) {
     return false;
   }
@@ -105,6 +112,7 @@ bool NhdCharLcd::command_(Command cmd) {
 }
 
 void NhdCharLcd::print(uint8_t column, uint8_t row, const char *str) {
+  ESP_LOGD(TAG, "print, \"%s\" at pos %u,%u", str, column, row);
   uint8_t pos = row * this->columns_ + column;
   for (; *str != '\0'; str++) {
     if (*str == '\n') {
@@ -113,10 +121,9 @@ void NhdCharLcd::print(uint8_t column, uint8_t row, const char *str) {
     }
 
     if (pos >= this->positions_) {
-      ESP_LOGW(TAG, "NhdCharLcd print, out of range!");
+      ESP_LOGW(TAG, "print, out of range!");
       break;
     }
-
     this->buffer_[pos++] = *reinterpret_cast<const uint8_t*>(str);
   }
 }
@@ -192,7 +199,7 @@ void NhdCharLcd::set_cursor(uint8_t column, uint8_t row) {
     this->command_(COMMAND_SET_CURSOR, pos);
   }
   else {
-    ESP_LOGW(TAG, "NhdCharLcd set_cursor, out of range!");
+    ESP_LOGW(TAG, "set_cursor, out of range!");
   }
 }
 
@@ -236,7 +243,7 @@ void NhdCharLcd::set_contrast(uint8_t contrast) {
   if (contrast >= 1 && contrast <= 50) {
     this->command_(COMMAND_SET_CONTRAST, contrast);
   } else {
-    ESP_LOGW(TAG, "NhdCharLcd set_contrast, out of range!");
+    ESP_LOGW(TAG, "set_contrast, out of range!");
   }
 }
 
@@ -253,7 +260,7 @@ void NhdCharLcd::set_backlight(uint8_t value) {
     this->backlight_value_ = value;
     this->backlight_on();
   } else {
-    ESP_LOGW(TAG, "NhdCharLcd set_backlight, out of range!");
+    ESP_LOGW(TAG, "set_backlight, out of range!");
   }
 }
 
@@ -264,7 +271,7 @@ void NhdCharLcd::load_custom_character(uint8_t addr,
     uint8_t character[9] = { addr, d0, d1, d2, d3, d4, d5, d6, d7 };
     this->command_(COMMAND_LOAD_CUSTOM_CHARACTER, character, 9);
   } else {
-    ESP_LOGW(TAG, "NhdCharLcd load_custom_character, addr out of range!");
+    ESP_LOGW(TAG, "load_custom_character, addr out of range!");
   }
 }
 
@@ -291,7 +298,7 @@ void NhdCharLcd::change_rs232_baud_rate(uint32_t baud_rate) {
     case  57600: id = 7; break;
     case 115200: id = 8; break;
     default:
-      ESP_LOGW(TAG, "NhdCharLcd change_rs232_baud_rate, invalid baud rate!");
+      ESP_LOGW(TAG, "change_rs232_baud_rate, invalid baud rate!");
       return;
   }
   this->command_(COMMAND_CHANGE_RS232_BAUD_RATE, id);
@@ -301,7 +308,7 @@ void NhdCharLcd::change_i2c_address(uint8_t addr) {
   if ((addr & 0x01u) == 0) {
     this->command_(COMMAND_CHANGE_I2C_ADDRESS, addr);
   } else {
-    ESP_LOGW(TAG, "NhdCharLcd change_i2c_address, invalid address!");
+    ESP_LOGW(TAG, "change_i2c_address, invalid address!");
   }
 }
 

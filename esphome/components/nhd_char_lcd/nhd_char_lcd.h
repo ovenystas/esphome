@@ -16,6 +16,8 @@ class NhdCharLcd : public PollingComponent {
  public:
   virtual ~NhdCharLcd() { }
 
+  void set_locale();
+
   // Set screen dimensions.
   void set_dimensions(uint8_t columns, uint8_t rows);
 
@@ -32,22 +34,27 @@ class NhdCharLcd : public PollingComponent {
 
   // Print the given text at the specified column and row.
   void print(uint8_t column, uint8_t row, const char *str);
+  void print(uint8_t column, uint8_t row, const wchar_t *wstr);
 
   // Print the given string at the specified column and row.
   void print(uint8_t column, uint8_t row, const std::string &str);
+  void print(uint8_t column, uint8_t row, const std::wstring &wstr);
 
   // Print the given text at column=0 and row=0.
   void print(const char *str);
+  void print(const wchar_t *wstr);
 
   // Print the given string at column=0 and row=0.
   void print(const std::string &str);
+  void print(const std::wstring &wstr);
 
   // Evaluate the printf-format and print the text at the specified column and row.
   void printf(uint8_t column, uint8_t row, const char *format, ...)
       __attribute__((format(printf, 4, 5)));
 
   // Evaluate the printf-format and print the text at column=0 and row=0.
-  void printf(const char *format, ...) __attribute__((format(printf, 2, 3)));
+  void printf(const char *format, ...)
+      __attribute__((format(printf, 2, 3)));
 
 #ifdef USE_TIME
   // Evaluate the strftime-format and print the text at the specified column and row.
@@ -116,9 +123,11 @@ class NhdCharLcd : public PollingComponent {
   // Loads a custom character defined by bit map data in d0 to d7 into space
   // given by addr. 8 custom characters can be loaded.
   // Valid values for addr is 0 to 7.
-  // Example: '¿' (Spanish upside-down question mark) is:
-  //   d0-d7=0x04, 0x00, 0x04, 0x08, 0x10, 0x11, 0x0E, 0x00.
-  void load_custom_character(uint8_t addr,
+  // Also stores the corresponding unicode value for auto encoding when printing.
+  // If no unicode mapping shall be done set unicode=0.
+  // Example: '¿' (Spanish inverted question mark) is:
+  //   unicode=0x00BF d0-d7=0x04, 0x00, 0x04, 0x08, 0x10, 0x11, 0x0E, 0x00.
+  void load_custom_character(uint8_t addr, uint32_t unicode,
       uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
       uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7);
 
@@ -157,6 +166,8 @@ class NhdCharLcd : public PollingComponent {
   // Sends a command with parameters in a given buffer.
   bool command_(Command cmd, uint8_t* params, size_t length);
 
+  void utf8ToNhdEncode(const char *in_str, char *out_str);
+
   // Interface for sending a buffer with data bytes.
   virtual bool send(uint8_t* data, uint8_t len) = 0;
 
@@ -174,6 +185,9 @@ class NhdCharLcd : public PollingComponent {
 
   // Stores the current value of the backlight.
   uint8_t backlight_value_ { 8 };  // 1-8, 1=OFF, 2=Lowest brightness, 8=Highest brightness
+
+  // Holds which unicode char is stored as custom char.
+  uint32_t custom_char[8] { 0 };
 };
 
 }  // namespace nhd_char_lcd

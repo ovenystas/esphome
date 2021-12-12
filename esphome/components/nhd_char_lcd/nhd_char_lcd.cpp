@@ -3,6 +3,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 #include <cstring>
+#include <clocale>
 
 namespace esphome {
 namespace nhd_char_lcd {
@@ -49,6 +50,10 @@ void NhdCharLcd::set_dimensions(uint8_t columns, uint8_t rows) {
   } else {
     ESP_LOGW(TAG, "NhdCharLcd set_dimensions, out of range!");
   }
+}
+
+void NhdCharLcd::set_locale() {
+  std::setlocale(LC_ALL, "C.UTF-8");
 }
 
 void NhdCharLcd::setup() {
@@ -111,8 +116,26 @@ bool NhdCharLcd::command_(Command cmd) {
   return this->command_(cmd, nullptr, 0);
 }
 
+/**
+ * 0x00-0x0F are reserved for custom chars.
+ * 0x10-0x1F are blank.
+ * 0x20-0x7F are as ASCII but with these three exceptions:
+ * - Backslash '\' U005C is replaced by Yen '¥' U00A5
+ * - Tilde '~' U007E is replaced by Right arrow '→' U2192
+ * - DEL U007F is replaced by Left arrow '←' U2190
+ * 0x80-0x9F are blank.
+ * 0xA0-0xFF are New Haven specific char map.
+ *
+ * This function tries to convert from UTF-8 and map to New Haven's font table.
+ * It tries to map to custom chars if any has been set with.
+ * If a map can't be found it sets the specific char to a space char (blank).
+ */
+void NhdCharLcd::utf8ToNhdEncode(const char *in_str, char *out_str) {
+  ESP_LOGD(TAG, "utf8ToNhdEncode, in=\"%s\", out=\"%s\"", in_str, out_str);
+}
+
 void NhdCharLcd::print(uint8_t column, uint8_t row, const char *str) {
-  ESP_LOGD(TAG, "print, \"%s\" at pos %u,%u", str, column, row);
+  ESP_LOGD(TAG, "print, \"%s\" of length %u at pos %u,%u", str, strlen(str), column, row);
   uint8_t pos = row * this->columns_ + column;
   for (; *str != '\0'; str++) {
     if (*str == '\n') {
@@ -128,16 +151,45 @@ void NhdCharLcd::print(uint8_t column, uint8_t row, const char *str) {
   }
 }
 
+void NhdCharLcd::print(uint8_t column, uint8_t row, const wchar_t *wstr) {
+  ESP_LOGD(TAG, "print, \"%ls\" of length %u at pos %u,%u", wstr, wcslen(wstr), column, row);
+  uint8_t pos = row * this->columns_ + column;
+  for (; *wstr != '\0'; wstr++) {
+    if (*wstr == '\n') {
+      pos = ((pos / this->columns_) + 1) * this->columns_;
+      continue;
+    }
+
+    if (pos >= this->positions_) {
+      ESP_LOGW(TAG, "print, out of range!");
+      break;
+    }
+    this->buffer_[pos++] = *reinterpret_cast<const uint8_t*>(wstr);
+  }
+}
+
 void NhdCharLcd::print(uint8_t column, uint8_t row, const std::string &str) {
   this->print(column, row, str.c_str());
+}
+
+void NhdCharLcd::print(uint8_t column, uint8_t row, const std::wstring &wstr) {
+  this->print(column, row, wstr.c_str());
 }
 
 void NhdCharLcd::print(const char *str) {
   this->print(0, 0, str);
 }
 
+void NhdCharLcd::print(const wchar_t *wstr) {
+  this->print(0, 0, wstr);
+}
+
 void NhdCharLcd::print(const std::string &str) {
   this->print(0, 0, str.c_str());
+}
+
+void NhdCharLcd::print(const std::wstring &wstr) {
+  this->print(0, 0, wstr.c_str());
 }
 
 void NhdCharLcd::printf(uint8_t column, uint8_t row, const char *format, ...) {
@@ -264,12 +316,16 @@ void NhdCharLcd::set_backlight(uint8_t value) {
   }
 }
 
-void NhdCharLcd::load_custom_character(uint8_t addr,
+void NhdCharLcd::load_custom_character(uint8_t addr, uint32_t unicode,
     uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
     uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7) {
   if (addr < 8) {
+    ESP_LOGD(TAG, "load_custom_character, %u %08x,"
+        " 0x%02x %02x %02x %02x %02x %02x %02x %02x",
+        addr, unicode, d0, d1, d2, d3, d4, d5, d6, d7);
     uint8_t character[9] = { addr, d0, d1, d2, d3, d4, d5, d6, d7 };
     this->command_(COMMAND_LOAD_CUSTOM_CHARACTER, character, 9);
+    this->custom_char[addr] = unicode;
   } else {
     ESP_LOGW(TAG, "load_custom_character, addr out of range!");
   }

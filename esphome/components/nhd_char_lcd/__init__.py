@@ -52,7 +52,7 @@ async def setup_lcd_display(var, config):
         cg.add(
             var.load_custom_character(
                 idx,
-                char[CONF_CHAR],
+                ord(char[CONF_CHAR]),
                 char[CONF_PIXEL_DATA][0],
                 char[CONF_PIXEL_DATA][1],
                 char[CONF_PIXEL_DATA][2],

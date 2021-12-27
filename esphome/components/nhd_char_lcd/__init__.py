@@ -28,14 +28,16 @@ LCD_SCHEMA = display.BASIC_DISPLAY_SCHEMA.extend(
         cv.Optional(CONF_CUSTOM_CHARS): cv.All(
             cv.ensure_list(
                 {
-                    cv.Required(CONF_CHAR): cv,
+                    cv.Required(CONF_CHAR): cv.string_strict,
                     cv.Required(CONF_PIXEL_DATA): cv.All(
-                        cv.ensure_list(),
+                        cv.ensure_list(
+                            cv.hex_int,
+                        ),
                         cv.Length(min=8, max=8),
                     ),
                 }
             ),
-            cv.Length(min=1),
+            cv.Length(min=1, max=8),
         ),
     }
 ).extend(cv.polling_component_schema("1s"))

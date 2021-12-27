@@ -1,7 +1,13 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import display
-from esphome.const import CONF_DIMENSIONS, CONF_CUSTOM_CHARS, CONF_CHAR, CONF_PIXEL_DATA
+
+# from esphome.const import CONF_DIMENSIONS, CONF_CUSTOM_CHARS, CONF_CHAR, CONF_PIXEL_DATA
+from esphome.const import CONF_DIMENSIONS
+
+CONF_CUSTOM_CHARS = "custom_chars"
+CONF_CHAR = "char"
+CONF_PIXEL_DATA = "pixel_data"
 
 nhd_char_lcd_ns = cg.esphome_ns.namespace("nhd_char_lcd")
 NhdCharLcd = nhd_char_lcd_ns.class_("LCDDisplay", cg.PollingComponent)

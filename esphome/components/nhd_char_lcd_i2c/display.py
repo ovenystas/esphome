@@ -20,8 +20,8 @@ CONFIG_SCHEMA = nhd_char_lcd.LCD_SCHEMA.extend(
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    await nhd_char_lcd.setup_lcd_display(var, config)
     await i2c.register_i2c_device(var, config)
+    await nhd_char_lcd.setup_lcd_display(var, config)
 
     if CONF_LAMBDA in config:
         lambda_ = await cg.process_lambda(

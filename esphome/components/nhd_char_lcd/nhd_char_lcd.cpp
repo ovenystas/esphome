@@ -3,7 +3,6 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 #include <cstring>
-#include <clocale>
 
 namespace esphome {
 namespace nhd_char_lcd {
@@ -50,10 +49,6 @@ void NhdCharLcd::set_dimensions(uint8_t columns, uint8_t rows) {
   } else {
     ESP_LOGW(TAG, "NhdCharLcd set_dimensions, out of range!");
   }
-}
-
-void NhdCharLcd::set_locale() {
-  std::setlocale(LC_ALL, "C.UTF-8");
 }
 
 void NhdCharLcd::setup() {
@@ -151,45 +146,16 @@ void NhdCharLcd::print(uint8_t column, uint8_t row, const char *str) {
   }
 }
 
-void NhdCharLcd::print(uint8_t column, uint8_t row, const wchar_t *wstr) {
-  ESP_LOGD(TAG, "print, \"%ls\" of length %u at pos %u,%u", wstr, wcslen(wstr), column, row);
-  uint8_t pos = row * this->columns_ + column;
-  for (; *wstr != '\0'; wstr++) {
-    if (*wstr == '\n') {
-      pos = ((pos / this->columns_) + 1) * this->columns_;
-      continue;
-    }
-
-    if (pos >= this->positions_) {
-      ESP_LOGW(TAG, "print, out of range!");
-      break;
-    }
-    this->buffer_[pos++] = *reinterpret_cast<const uint8_t*>(wstr);
-  }
-}
-
 void NhdCharLcd::print(uint8_t column, uint8_t row, const std::string &str) {
   this->print(column, row, str.c_str());
-}
-
-void NhdCharLcd::print(uint8_t column, uint8_t row, const std::wstring &wstr) {
-  this->print(column, row, wstr.c_str());
 }
 
 void NhdCharLcd::print(const char *str) {
   this->print(0, 0, str);
 }
 
-void NhdCharLcd::print(const wchar_t *wstr) {
-  this->print(0, 0, wstr);
-}
-
 void NhdCharLcd::print(const std::string &str) {
   this->print(0, 0, str.c_str());
-}
-
-void NhdCharLcd::print(const std::wstring &wstr) {
-  this->print(0, 0, wstr.c_str());
 }
 
 void NhdCharLcd::printf(uint8_t column, uint8_t row, const char *format, ...) {

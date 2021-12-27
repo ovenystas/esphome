@@ -16,8 +16,6 @@ class NhdCharLcd : public PollingComponent {
  public:
   virtual ~NhdCharLcd() { }
 
-  void set_locale();
-
   // Set screen dimensions.
   void set_dimensions(uint8_t columns, uint8_t rows);
 
@@ -34,19 +32,15 @@ class NhdCharLcd : public PollingComponent {
 
   // Print the given text at the specified column and row.
   void print(uint8_t column, uint8_t row, const char *str);
-  void print(uint8_t column, uint8_t row, const wchar_t *wstr);
 
   // Print the given string at the specified column and row.
   void print(uint8_t column, uint8_t row, const std::string &str);
-  void print(uint8_t column, uint8_t row, const std::wstring &wstr);
 
   // Print the given text at column=0 and row=0.
   void print(const char *str);
-  void print(const wchar_t *wstr);
 
   // Print the given string at column=0 and row=0.
   void print(const std::string &str);
-  void print(const std::wstring &wstr);
 
   // Evaluate the printf-format and print the text at the specified column and row.
   void printf(uint8_t column, uint8_t row, const char *format, ...)

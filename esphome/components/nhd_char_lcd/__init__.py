@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import display
-from esphome.const import CONF_DIMENSIONS
+from esphome.const import CONF_DIMENSIONS, CONF_CUSTOM_CHARS, CONF_CHAR, CONF_PIXEL_DATA
 
 nhd_char_lcd_ns = cg.esphome_ns.namespace("nhd_char_lcd")
 NhdCharLcd = nhd_char_lcd_ns.class_("LCDDisplay", cg.PollingComponent)
@@ -19,6 +19,18 @@ def validate_lcd_dimensions(value):
 LCD_SCHEMA = display.BASIC_DISPLAY_SCHEMA.extend(
     {
         cv.Required(CONF_DIMENSIONS): validate_lcd_dimensions,
+        cv.Optional(CONF_CUSTOM_CHARS): cv.All(
+            cv.ensure_list(
+                {
+                    cv.Required(CONF_CHAR): cv,
+                    cv.Required(CONF_PIXEL_DATA): cv.All(
+                        cv.ensure_list(),
+                        cv.Length(min=8, max=8),
+                    ),
+                }
+            ),
+            cv.Length(min=1),
+        ),
     }
 ).extend(cv.polling_component_schema("1s"))
 
@@ -26,5 +38,5 @@ LCD_SCHEMA = display.BASIC_DISPLAY_SCHEMA.extend(
 async def setup_lcd_display(var, config):
     await cg.register_component(var, config)
     await display.register_display(var, config)
-    cg.add(var.set_locale())
     cg.add(var.set_dimensions(config[CONF_DIMENSIONS][0], config[CONF_DIMENSIONS][1]))
+    cg.add(var.load_custom_character())

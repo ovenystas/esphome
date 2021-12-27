@@ -47,4 +47,19 @@ async def setup_lcd_display(var, config):
     await cg.register_component(var, config)
     await display.register_display(var, config)
     cg.add(var.set_dimensions(config[CONF_DIMENSIONS][0], config[CONF_DIMENSIONS][1]))
-    cg.add(var.load_custom_character())
+
+    for idx, char in enumerate(config[CONF_CUSTOM_CHARS]):
+        cg.add(
+            var.load_custom_character(
+                idx,
+                char[CONF_CHAR],
+                char[CONF_PIXEL_DATA][0],
+                char[CONF_PIXEL_DATA][1],
+                char[CONF_PIXEL_DATA][2],
+                char[CONF_PIXEL_DATA][3],
+                char[CONF_PIXEL_DATA][4],
+                char[CONF_PIXEL_DATA][5],
+                char[CONF_PIXEL_DATA][6],
+                char[CONF_PIXEL_DATA][7],
+            )
+        )

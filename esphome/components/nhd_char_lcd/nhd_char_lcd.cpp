@@ -122,19 +122,81 @@ bool NhdCharLcd::command_(Command cmd) {
  * 0xA0-0xFF are New Haven specific char map.
  *
  * This function tries to convert from UTF-8 and map to New Haven's font table.
- * It tries to map to custom chars if any has been set with.
+ * It tries to map to custom chars if any has been set with load_custom_character().
  * If a map can't be found it sets the specific char to a space char (blank).
  */
-void NhdCharLcd::utf8ToNhdEncode(const char *in_str, char *out_str) {
-  ESP_LOGD(TAG, "utf8ToNhdEncode, in=\"%s\", out=\"%s\"", in_str, out_str);
+uint8_t NhdCharLcd::unicodeToNhdCode(uint32_t codePoint) {
+  if (codePoint <= 0x0F) {
+    return static_cast<uint8_t>(codePoint);
+  }
+
+  for (uint8_t i = 0; i < 8; i++) {
+    if (codePoint == this->custom_char[i]) {
+      return i;
+    }
+  }
+
+  if (codePoint >= 0x10 && codePoint <= 0x1F) {
+    return '?';
+  }
+
+  if (codePoint >= 0x20 && codePoint <= 0x7F) {
+    return static_cast<uint8_t>(codePoint);
+  }
+
+  if (codePoint >= 0x80 && codePoint <= 0x9F) {
+    return '?';
+  }
+
+  if (codePoint >= 0xA0 && codePoint <= 0xFF) {
+    return '?';
+  }
+
+  return '?';
+}
+
+/**
+ * Decode 1-4 bytes in string to it's unicode representation.
+ * Sets codePoint to decoded unicode value.
+ * Returns: Number of bytes used up in string, 0 if invalid UTF-8 string.
+ */
+uint8_t NhdCharLcd::utf8Decode(const char *str, uint32_t *codePoint) {
+  uint32_t cp = '?'; // Default to space char ('?' during debug)
+  uint8_t num_bytes;
+
+  if ((str[0] & 0x80) == 0x00) {
+    cp = str[0];
+    num_bytes = 1;
+  } else if ((str[0] & 0xE0) == 0xC0 && (str[1] & 0xC0) == 0x80) {
+    cp = ((str[0] & 0x1F) << 6) + (str[1] & 0x3F);
+    num_bytes = 2;
+  } else if ((str[0] & 0xF0) == 0xE0 && (str[1] & 0xC0) == 0x80 && (str[2] & 0xC0) == 0x80) {
+    cp = ((str[0] & 0x0F) << 12) + ((str[1] & 0x3F) << 6) + (str[2] & 0x3F);
+    num_bytes = 3;
+  } else if ((str[0] & 0xF8) == 0xF0 && (str[1] & 0xC0) == 0x80 && (str[2] & 0xC0) == 0x80 && (str[3] & 0xC0) == 0x80) {
+    cp = ((str[0] & 0x07) << 18) + ((str[1] & 0x3F) << 12) + ((str[2] & 0x3F) << 6) + (str[3] & 0x3F);
+    num_bytes = 4;
+  } else {
+    ESP_LOGW(TAG, "utf8Decode, Invalid UTF-8 chars 0x%02x%02x%02x%02x",
+        str[0], str[1], str[2], str[3]);
+    return 0;
+  }
+
+  ESP_LOGD(TAG, "utf8Decode, 0x%02x%02x%02x%02x -> U%08X using %u bytes",
+      str[0], str[1], str[2], str[3], cp, num_bytes);
+
+  *codePoint = cp;
+
+  return num_bytes;
 }
 
 void NhdCharLcd::print(uint8_t column, uint8_t row, const char *str) {
   ESP_LOGD(TAG, "print, \"%s\" of length %u at pos %u,%u", str, strlen(str), column, row);
   uint8_t pos = row * this->columns_ + column;
-  for (; *str != '\0'; str++) {
+  while (*str != '\0') {
     if (*str == '\n') {
       pos = ((pos / this->columns_) + 1) * this->columns_;
+      ++str;
       continue;
     }
 
@@ -142,7 +204,17 @@ void NhdCharLcd::print(uint8_t column, uint8_t row, const char *str) {
       ESP_LOGW(TAG, "print, out of range!");
       break;
     }
-    this->buffer_[pos++] = *reinterpret_cast<const uint8_t*>(str);
+
+    uint32_t codePoint;
+    uint8_t decodedBytes = utf8Decode(str, &codePoint);
+
+    if (decodedBytes == 0) {
+      ESP_LOGW(TAG, "print, Could not decode utf-8 string!");
+      break;
+    }
+
+    this->buffer_[pos++] = unicodeToNhdCode(codePoint);
+    str += decodedBytes;
   }
 }
 

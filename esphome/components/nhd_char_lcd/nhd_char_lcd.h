@@ -160,7 +160,8 @@ class NhdCharLcd : public PollingComponent {
   // Sends a command with parameters in a given buffer.
   bool command_(Command cmd, uint8_t* params, size_t length);
 
-  void utf8ToNhdEncode(const char *in_str, char *out_str);
+  uint8_t unicodeToNhdCode(uint32_t codePoint);
+  uint8_t utf8Decode(const char *str, uint32_t *codePoint);
 
   // Interface for sending a buffer with data bytes.
   virtual bool send(uint8_t* data, uint8_t len) = 0;

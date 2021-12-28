@@ -46,8 +46,9 @@ void NhdCharLcd::set_dimensions(uint8_t columns, uint8_t rows) {
     this->columns_ = columns;
     this->rows_ = rows;
     this->positions_ = columns * rows;
+    ESP_LOGD(TAG, "set_dimensions: %ux%u", columns, rows);
   } else {
-    ESP_LOGW(TAG, "NhdCharLcd set_dimensions, out of range!");
+    ESP_LOGW(TAG, "set_dimensions, out of range!");
   }
 }
 

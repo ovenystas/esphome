@@ -68,13 +68,7 @@ void NhdCharLcd::setup() {
     return;
   }
 
-  this->load_custom_character(0, 0xE5, 0x04, 0x0A, 0x0E, 0x01, 0x0F, 0x11, 0x0F, 0x00);
-  this->load_custom_character(1, 0xE4, 0x04, 0x0A, 0x0E, 0x01, 0x0F, 0x11, 0x0F, 0x00);
-  this->load_custom_character(2, 0xF6, 0x04, 0x0A, 0x0E, 0x01, 0x0F, 0x11, 0x0F, 0x00);
-  this->load_custom_character(3, 0xC5, 0x04, 0x0A, 0x0E, 0x01, 0x0F, 0x11, 0x0F, 0x00);
-  this->load_custom_character(4, 0xC4, 0x04, 0x0A, 0x0E, 0x01, 0x0F, 0x11, 0x0F, 0x00);
-  this->load_custom_character(5, 0xD6, 0x04, 0x0A, 0x0E, 0x01, 0x0F, 0x11, 0x0F, 0x00);
-
+  this->load_all_custom_characters();
   this->clear_screen();
 }
 
@@ -139,7 +133,7 @@ uint8_t NhdCharLcd::unicodeToNhdCode(uint32_t codePoint) {
   }
 
   for (uint8_t i = 0; i < 8; i++) {
-    if (codePoint == this->custom_char[i]) {
+    if (codePoint == this->custom_chars[i].unicode) {
       return i;
     }
   }
@@ -362,18 +356,59 @@ void NhdCharLcd::set_backlight(uint8_t value) {
   }
 }
 
-void NhdCharLcd::load_custom_character(uint8_t addr, uint32_t unicode,
+void NhdCharLcd::set_custom_character(uint8_t addr, uint32_t unicode,
     uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
     uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7) {
   if (addr < 8) {
-    ESP_LOGD(TAG, "load_custom_character, %u %08x,"
+    ESP_LOGD(TAG, "set_custom_character, %u %08x,"
         " 0x%02x %02x %02x %02x %02x %02x %02x %02x",
         addr, unicode, d0, d1, d2, d3, d4, d5, d6, d7);
-    uint8_t character[9] = { addr, d0, d1, d2, d3, d4, d5, d6, d7 };
-    this->command_(COMMAND_LOAD_CUSTOM_CHARACTER, character, 9);
-    this->custom_char[addr] = unicode;
+
+    struct CustomChar* cc = &this->custom_chars[addr];
+    cc->unicode = unicode;
+    cc->pixelData[0] = d0;
+    cc->pixelData[1] = d1;
+    cc->pixelData[2] = d2;
+    cc->pixelData[3] = d3;
+    cc->pixelData[4] = d4;
+    cc->pixelData[5] = d5;
+    cc->pixelData[6] = d6;
+    cc->pixelData[7] = d7;
   } else {
-    ESP_LOGW(TAG, "load_custom_character, addr out of range!");
+    ESP_LOGW(TAG, "set_custom_character, addr out of range!");
+  }
+}
+
+void NhdCharLcd::load_custom_character(uint8_t idx) {
+  if (idx < 8) {
+    struct CustomChar* cc = &this->custom_chars[idx];
+
+    ESP_LOGD(TAG, "load_custom_character, %u %08x,"
+        " 0x%02x %02x %02x %02x %02x %02x %02x %02x",
+        idx, cc->unicode,
+        cc->pixelData[0],
+        cc->pixelData[1],
+        cc->pixelData[2],
+        cc->pixelData[3],
+        cc->pixelData[4],
+        cc->pixelData[5],
+        cc->pixelData[6],
+        cc->pixelData[7]);
+
+    uint8_t character[9];
+    character[0] = idx;
+    memcpy(&character[1], cc->pixelData, 8);
+    this->command_(COMMAND_LOAD_CUSTOM_CHARACTER, character, 9);
+  } else {
+    ESP_LOGW(TAG, "load_custom_character, idx out of range!");
+  }
+}
+
+void NhdCharLcd::load_all_custom_characters() {
+  for (uint8_t i = 0; i < 8; i++) {
+    if (this->custom_chars[i].unicode != 0) {
+      this->load_custom_character(i);
+    }
   }
 }
 

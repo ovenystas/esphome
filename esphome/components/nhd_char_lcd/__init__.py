@@ -46,11 +46,12 @@ LCD_SCHEMA = display.BASIC_DISPLAY_SCHEMA.extend(
 async def setup_lcd_display(var, config):
     await cg.register_component(var, config)
     await display.register_display(var, config)
+
     cg.add(var.set_dimensions(config[CONF_DIMENSIONS][0], config[CONF_DIMENSIONS][1]))
 
     for idx, char in enumerate(config[CONF_CUSTOM_CHARS]):
         cg.add(
-            var.load_custom_character(
+            var.set_custom_character(
                 idx,
                 ord(char[CONF_CHAR]),
                 char[CONF_PIXEL_DATA][0],
@@ -63,18 +64,3 @@ async def setup_lcd_display(var, config):
                 char[CONF_PIXEL_DATA][7],
             )
         )
-
-    cg.add(
-        var.load_custom_character(
-            0,
-            0xE5,
-            0x04,
-            0x0A,
-            0x0E,
-            0x01,
-            0x0F,
-            0x11,
-            0x0F,
-            0x00,
-        )
-    )

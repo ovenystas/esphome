@@ -114,16 +114,22 @@ class NhdCharLcd : public PollingComponent {
   // Default: 8 (max brightness).
   void set_backlight(uint8_t value);
 
-  // Loads a custom character defined by bit map data in d0 to d7 into space
+  // Sets a custom character defined by bit map data in d0 to d7 into space
   // given by addr. 8 custom characters can be loaded.
   // Valid values for addr is 0 to 7.
   // Also stores the corresponding unicode value for auto encoding when printing.
   // If no unicode mapping shall be done set unicode=0.
   // Example: '¿' (Spanish inverted question mark) is:
   //   unicode=0x00BF d0-d7=0x04, 0x00, 0x04, 0x08, 0x10, 0x11, 0x0E, 0x00.
-  void load_custom_character(uint8_t addr, uint32_t unicode,
+  void set_custom_character(uint8_t addr, uint32_t unicode,
       uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
       uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7);
+
+  // Loads a custom character into LCD memory.
+  void load_custom_character(uint8_t idx);
+
+  // Loads all set custom characters into LCD memory.
+  void load_all_custom_characters();
 
   // Move the whole display left one step.
   void move_display_left();
@@ -172,18 +178,22 @@ class NhdCharLcd : public PollingComponent {
   // Interface for calling writer.
   virtual void call_writer() = 0;
 
+  struct CustomChar {
+    uint32_t unicode;
+    uint8_t pixelData[8];
+  };
 
-  uint8_t columns_ { 0 };
-  uint8_t rows_ { 0 };
-  uint8_t positions_ { 0 };
-  uint8_t *buffer_ { nullptr };
+  uint8_t columns_ { };
+  uint8_t rows_ { };
+  uint8_t positions_ { };
+  uint8_t *buffer_ { };
 
   // Stores the current value of the backlight.
   uint8_t backlight_value_ { 8 };  // 1-8, 1=OFF, 2=Lowest brightness, 8=Highest brightness
 
-  // Holds which unicode char is stored as custom char.
-  uint32_t custom_char[8] { 0 };
+  // Holds pexel_data for custom chars.
+  struct CustomChar custom_chars[8] { };
 };
 
 }  // namespace nhd_char_lcd
-}  // namespace esphome
+}  // namespace esphom

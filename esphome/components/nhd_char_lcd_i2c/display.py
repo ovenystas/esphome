@@ -6,6 +6,8 @@ from esphome.const import CONF_ID, CONF_LAMBDA
 DEPENDENCIES = ["i2c"]
 AUTO_LOAD = ["nhd_char_lcd"]
 
+DEFAULT_I2C_ADDRESS = 0x28
+
 nhd_char_lcd_i2c_ns = cg.esphome_ns.namespace("nhd_char_lcd_i2c")
 NhdCharLcdI2c = nhd_char_lcd_i2c_ns.class_(
     "NhdCharLcdI2c", nhd_char_lcd.NhdCharLcd, i2c.I2CDevice
@@ -15,7 +17,7 @@ CONFIG_SCHEMA = nhd_char_lcd.LCD_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(NhdCharLcdI2c),
     }
-).extend(i2c.i2c_device_schema(0x28))
+).extend(i2c.i2c_device_schema(DEFAULT_I2C_ADDRESS))
 
 
 async def to_code(config):

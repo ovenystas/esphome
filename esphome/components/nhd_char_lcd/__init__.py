@@ -22,13 +22,23 @@ def validate_lcd_dimensions(value):
     return value
 
 
+def validate_custom_char_char(value):
+    cv.string_strict(value)
+    if len(value) != 1:
+        raise cv.Invalid(
+            "Character must be a single char or a unicode string"
+            ' in format "\\uXXXX" or "\\UXXXXXXXX'
+        )
+    return value
+
+
 LCD_SCHEMA = display.BASIC_DISPLAY_SCHEMA.extend(
     {
         cv.Required(CONF_DIMENSIONS): validate_lcd_dimensions,
         cv.Optional(CONF_CUSTOM_CHARS): cv.All(
             cv.ensure_list(
                 {
-                    cv.Required(CONF_CHAR): cv.string_strict,
+                    cv.Required(CONF_CHAR): validate_custom_char_char,
                     cv.Required(CONF_PIXEL_DATA): cv.All(
                         cv.ensure_list(
                             cv.hex_int,

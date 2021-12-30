@@ -60,7 +60,6 @@ async def setup_lcd_display(var, config):
     cg.add(var.set_dimensions(config[CONF_DIMENSIONS][0], config[CONF_DIMENSIONS][1]))
 
     for idx, char in enumerate(config[CONF_CUSTOM_CHARS]):
-        print(f"char[CONF_CHAR] = {char[CONF_CHAR]}")
         cg.add(
             var.set_custom_character(
                 idx,

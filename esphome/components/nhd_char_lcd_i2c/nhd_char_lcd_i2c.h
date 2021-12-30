@@ -20,10 +20,12 @@ class NhdCharLcdI2c : public nhd_char_lcd::NhdCharLcd, public i2c::I2CDevice {
   bool send_command(uint8_t cmd, uint8_t* data, uint8_t len) override;
 
   void call_writer() override {
-    this->writer_(*this);
+    if (this->writer_) {
+      this->writer_(*this);
+    }
   }
 
-  std::function<void(NhdCharLcdI2c &)> writer_;
+  std::function<void(NhdCharLcdI2c &)> writer_ { };
 };
 
 }  // namespace nhd_char_lcd_i2c

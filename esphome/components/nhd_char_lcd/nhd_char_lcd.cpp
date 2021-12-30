@@ -95,9 +95,9 @@ bool NhdCharLcd::command_(Command cmd, uint8_t* params, size_t length) {
   if (params != nullptr) {
     param = params[0];
   }
-  ESP_LOGD(TAG,
-      "command_, cmd=%u,%u, params=0x%02x",
-      cmd.cmd, cmd.exec_time_us, param);
+//  ESP_LOGD(TAG,
+//      "command_, cmd=%u,%u, params=0x%02x",
+//      cmd.cmd, cmd.exec_time_us, param);
   if (!this->send_command(cmd.cmd, params, static_cast<uint8_t>(length))) {
     return false;
   }

@@ -3,12 +3,11 @@
 #include "esphome/core/component.h"
 #include "esphome/components/nhd_char_lcd/nhd_char_lcd.h"
 #include "esphome/components/i2c/i2c.h"
-#include "esphome/components/display/display_buffer.h"
 
 namespace esphome {
 namespace nhd_char_lcd_i2c {
 
-class NhdCharLcdI2c : public nhd_char_lcd::NhdCharLcd, public i2c::I2CDevice, public display::DisplayBuffer {
+class NhdCharLcdI2c : public nhd_char_lcd::NhdCharLcd, public i2c::I2CDevice {
  public:
   void set_writer(std::function<void(NhdCharLcdI2c &)> &&writer) {
     this->writer_ = std::move(writer);

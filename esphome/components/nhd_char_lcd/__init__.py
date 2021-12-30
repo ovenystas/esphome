@@ -32,7 +32,7 @@ def validate_custom_char_char(value):
     return value
 
 
-LCD_SCHEMA = display.FULL_DISPLAY_SCHEMA.extend(
+LCD_SCHEMA = display.BASIC_DISPLAY_SCHEMA.extend(
     {
         cv.Required(CONF_DIMENSIONS): validate_lcd_dimensions,
         cv.Optional(CONF_CUSTOM_CHARS): cv.All(

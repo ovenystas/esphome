@@ -162,7 +162,7 @@ uint8_t NhdCharLcd::unicodeToNhdCode(uint32_t codePoint) {
  * Sets codePoint to decoded unicode value.
  * Returns: Number of bytes used up in string, 0 if invalid UTF-8 string.
  */
-uint8_t NhdCharLcd::utf8Decode(const char *str, uint32_t *codePoint) {
+uint8_t NhdCharLcd::utf8Decode(const char* str, uint32_t* codePoint) {
   uint32_t cp = '?'; // Default to space char ('?' during debug)
   uint8_t num_bytes;
 
@@ -184,16 +184,16 @@ uint8_t NhdCharLcd::utf8Decode(const char *str, uint32_t *codePoint) {
     return 0;
   }
 
-  ESP_LOGD(TAG, "utf8Decode, 0x%02x%02x%02x%02x -> U%08X using %u bytes",
-      str[0], str[1], str[2], str[3], cp, num_bytes);
+//  ESP_LOGD(TAG, "utf8Decode, 0x%02x%02x%02x%02x -> U%08X using %u bytes",
+//      str[0], str[1], str[2], str[3], cp, num_bytes);
 
   *codePoint = cp;
 
   return num_bytes;
 }
 
-void NhdCharLcd::print(uint8_t column, uint8_t row, const char *str) {
-  ESP_LOGD(TAG, "print, \"%s\" of length %u at pos %u,%u", str, strlen(str), column, row);
+void NhdCharLcd::print(uint8_t column, uint8_t row, const char* str) {
+  ESP_LOGD(TAG, "print, \"%s\" at pos %u,%u", str, column, row);
   uint8_t pos = row * this->columns_ + column;
   while (*str != '\0') {
     if (*str == '\n') {
@@ -232,7 +232,7 @@ void NhdCharLcd::print(const std::string &str) {
   this->print(0, 0, str.c_str());
 }
 
-void NhdCharLcd::printf(uint8_t column, uint8_t row, const char *format, ...) {
+void NhdCharLcd::printf(uint8_t column, uint8_t row, const char* format, ...) {
   va_list arg;
   va_start(arg, format);
   char buffer[256];
@@ -244,7 +244,7 @@ void NhdCharLcd::printf(uint8_t column, uint8_t row, const char *format, ...) {
   }
 }
 
-void NhdCharLcd::printf(const char *format, ...) {
+void NhdCharLcd::printf(const char* format, ...) {
   va_list arg;
   va_start(arg, format);
   char buffer[256];
@@ -360,20 +360,20 @@ void NhdCharLcd::set_custom_character(uint8_t addr, uint32_t unicode,
     uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
     uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7) {
   if (addr < 8) {
-    ESP_LOGD(TAG, "set_custom_character, %u %08x,"
-        " 0x%02x %02x %02x %02x %02x %02x %02x %02x",
-        addr, unicode, d0, d1, d2, d3, d4, d5, d6, d7);
+//    ESP_LOGD(TAG, "set_custom_character, %u %08x,"
+//        " 0x%02x %02x %02x %02x %02x %02x %02x %02x",
+//        addr, unicode, d0, d1, d2, d3, d4, d5, d6, d7);
 
     struct CustomChar* cc = &this->custom_chars[addr];
     cc->unicode = unicode;
-    cc->pixelData[0] = d0;
-    cc->pixelData[1] = d1;
-    cc->pixelData[2] = d2;
-    cc->pixelData[3] = d3;
-    cc->pixelData[4] = d4;
-    cc->pixelData[5] = d5;
-    cc->pixelData[6] = d6;
-    cc->pixelData[7] = d7;
+    cc->pixel_data[0] = d0;
+    cc->pixel_data[1] = d1;
+    cc->pixel_data[2] = d2;
+    cc->pixel_data[3] = d3;
+    cc->pixel_data[4] = d4;
+    cc->pixel_data[5] = d5;
+    cc->pixel_data[6] = d6;
+    cc->pixel_data[7] = d7;
   } else {
     ESP_LOGW(TAG, "set_custom_character, addr out of range!");
   }
@@ -383,21 +383,21 @@ void NhdCharLcd::load_custom_character(uint8_t idx) {
   if (idx < 8) {
     struct CustomChar* cc = &this->custom_chars[idx];
 
-    ESP_LOGD(TAG, "load_custom_character, %u %08x,"
-        " 0x%02x %02x %02x %02x %02x %02x %02x %02x",
-        idx, cc->unicode,
-        cc->pixelData[0],
-        cc->pixelData[1],
-        cc->pixelData[2],
-        cc->pixelData[3],
-        cc->pixelData[4],
-        cc->pixelData[5],
-        cc->pixelData[6],
-        cc->pixelData[7]);
+//    ESP_LOGD(TAG, "load_custom_character, %u %08x,"
+//        " 0x%02x %02x %02x %02x %02x %02x %02x %02x",
+//        idx, cc->unicode,
+//        cc->pixel_data[0],
+//        cc->pixel_data[1],
+//        cc->pixel_data[2],
+//        cc->pixel_data[3],
+//        cc->pixel_data[4],
+//        cc->pixel_data[5],
+//        cc->pixel_data[6],
+//        cc->pixel_data[7]);
 
     uint8_t character[9];
     character[0] = idx;
-    memcpy(&character[1], cc->pixelData, 8);
+    memcpy(&character[1], cc->pixel_data, 8);
     this->command_(COMMAND_LOAD_CUSTOM_CHARACTER, character, 9);
   } else {
     ESP_LOGW(TAG, "load_custom_character, idx out of range!");
@@ -439,11 +439,13 @@ void NhdCharLcd::change_rs232_baud_rate(uint32_t baud_rate) {
       return;
   }
   this->command_(COMMAND_CHANGE_RS232_BAUD_RATE, id);
+  ESP_LOGI(TAG, "change_rs232_baud_rate, Changed baud rate to %u", baud_rate);
 }
 
 void NhdCharLcd::change_i2c_address(uint8_t addr) {
   if ((addr & 0x01u) == 0) {
     this->command_(COMMAND_CHANGE_I2C_ADDRESS, addr);
+    ESP_LOGI(TAG, "change_i2c_address, Changed I2C address to 0x%02X", addr);
   } else {
     ESP_LOGW(TAG, "change_i2c_address, invalid address!");
   }

@@ -31,13 +31,13 @@ class NhdCharLcd : public PollingComponent {
   void clear_buffer();
 
   // Print the given text at the specified column and row.
-  void print(uint8_t column, uint8_t row, const char *str);
+  void print(uint8_t column, uint8_t row, const char* str);
 
   // Print the given string at the specified column and row.
   void print(uint8_t column, uint8_t row, const std::string &str);
 
   // Print the given text at column=0 and row=0.
-  void print(const char *str);
+  void print(const char* str);
 
   // Print the given string at column=0 and row=0.
   void print(const std::string &str);
@@ -47,7 +47,7 @@ class NhdCharLcd : public PollingComponent {
       __attribute__((format(printf, 4, 5)));
 
   // Evaluate the printf-format and print the text at column=0 and row=0.
-  void printf(const char *format, ...)
+  void printf(const char* format, ...)
       __attribute__((format(printf, 2, 3)));
 
 #ifdef USE_TIME
@@ -167,7 +167,7 @@ class NhdCharLcd : public PollingComponent {
   bool command_(Command cmd, uint8_t* params, size_t length);
 
   uint8_t unicodeToNhdCode(uint32_t codePoint);
-  uint8_t utf8Decode(const char *str, uint32_t *codePoint);
+  uint8_t utf8Decode(const char* str, uint32_t* codePoint);
 
   // Interface for sending a buffer with data bytes.
   virtual bool send(uint8_t* data, uint8_t len) = 0;
@@ -180,13 +180,13 @@ class NhdCharLcd : public PollingComponent {
 
   struct CustomChar {
     uint32_t unicode;
-    uint8_t pixelData[8];
+    uint8_t pixel_data[8];
   };
 
   uint8_t columns_ { };
   uint8_t rows_ { };
   uint8_t positions_ { };
-  uint8_t *buffer_ { };
+  uint8_t* buffer_ { };
 
   // Stores the current value of the backlight.
   uint8_t backlight_value_ { 8 };  // 1-8, 1=OFF, 2=Lowest brightness, 8=Highest brightness

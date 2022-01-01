@@ -3,6 +3,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 #include <cstring>
+#include <unordered_map>
 
 namespace esphome {
 namespace nhd_char_lcd {
@@ -40,6 +41,90 @@ static const Command COMMAND_DISPLAY_I2C_ADDRESS = { 0x72, 4000u };
 static const uint16_t PRINT_EXEC_TIME_US = 100u;
 static const uint8_t COLUMNS_MAX = 64u;
 static const uint8_t ROWS_MAX = 4u;
+
+// Table for mapping Unicode to Newhaven Display character set
+static const  std::unordered_map<uint32_t, uint8_t> nhd_char_map = {
+    { 0x00a5, 0x5c },  // Yen sign: ¥
+    { 0x2192, 0x7e },  // Rightwards arrow: →
+    { 0x2190, 0x7f },  // Leftwards arrow: ←
+    { 0x2080, 0xa1 },  // Subscript zero: ₀
+    { 0x30fb, 0xa5 },  // Katakana middle dot: ・
+    { 0x30f2, 0xa6 },  // Katakana letter wo: ヲ
+    { 0x30a1, 0xa7 },  // Katakana letter small a: ァ
+    { 0x30a3, 0xa8 },  // Katakana letter small i: ィ
+    { 0x30a5, 0xa9 },  // Katakana letter small u: ゥ
+    { 0x30a7, 0xaa },  // Katakana letter small e: ェ
+    { 0x30a9, 0xab },  // Katakana letter small o: ォ
+    { 0x30f5, 0xac },  // Katakana letter small ka: ヵ
+    { 0x30e5, 0xad },  // Katakana letter small yu: ュ
+    { 0x30e7, 0xae },  // Katakana letter small yo: ョ
+    { 0x30c3, 0xaf },  // Katakana letter small tu: ッ
+    { 0x30fc, 0xb0 },  // Katakana-hiragana prolonged sound mark: ー
+    { 0x30a2, 0xb1 },  // Katakana letter a: ア
+    { 0x30a4, 0xb2 },  // Katakana letter i: イ
+    { 0x30a6, 0xb3 },  // Katakana letter u: ウ
+    { 0x30a8, 0xb4 },  // Katakana letter e: エ
+    { 0x30aa, 0xb5 },  // Katakana letter o: オ
+    { 0x30ab, 0xb6 },  // Katakana letter ka: カ
+    { 0x30ad, 0xb7 },  // Katakana letter ki: キ
+    { 0x30af, 0xb8 },  // Katakana letter ku: ク
+    { 0x30b1, 0xb9 },  // Katakana letter ke: ケ
+    { 0x30b3, 0xba },  // Katakana letter ko: コ
+    { 0x30b5, 0xbb },  // Katakana letter sa: サ
+    { 0x30b7, 0xbc },  // Katakana letter si: シ
+    { 0x30b9, 0xbd },  // Katakana letter su: ス
+    { 0x30bb, 0xbe },  // Katakana letter se: セ
+    { 0x30bd, 0xbf },  // Katakana letter so: ソ
+    { 0x30bf, 0xc0 },  // Katakana letter ta: タ
+    { 0x30c1, 0xc1 },  // Katakana letter ti: チ
+    { 0x30c4, 0xc2 },  // Katakana letter tu: ツ
+    { 0x30c6, 0xc3 },  // Katakana letter te: テ
+    { 0x30c8, 0xc4 },  // Katakana letter to: ト
+    { 0x30ca, 0xc5 },  // Katakana letter na: ナ
+    { 0x30cb, 0xc6 },  // Katakana letter ni: ニ
+    { 0x30cc, 0xc7 },  // Katakana letter nu: ヌ
+    { 0x30cd, 0xc8 },  // Katakana letter ne: ネ
+    { 0x30ce, 0xc9 },  // Katakana letter no: ノ
+    { 0x30cf, 0xca },  // Katakana letter ha: ハ
+    { 0x30d2, 0xcb },  // Katakana letter hi: ヒ
+    { 0x30d5, 0xcc },  // Katakana letter hu: フ
+    { 0x30d8, 0xcd },  // Katakana letter he: ヘ
+    { 0x30db, 0xce },  // Katakana letter ho: ホ
+    { 0x30de, 0xcf },  // Katakana letter ma: マ
+    { 0x30df, 0xd0 },  // Katakana letter mi: ミ
+    { 0x30e0, 0xd1 },  // Katakana letter mu: ム
+    { 0x30e1, 0xd2 },  // Katakana letter me: メ
+    { 0x30e2, 0xd3 },  // Katakana letter mo: モ
+    { 0x30e4, 0xd4 },  // Katakana letter ya: ヤ
+    { 0x30e6, 0xd5 },  // Katakana letter yu: ユ
+    { 0x30e8, 0xd6 },  // Katakana letter yo: ヨ
+    { 0x30e9, 0xd7 },  // Katakana letter ra: ラ
+    { 0x30ea, 0xd8 },  // Katakana letter ri: リ
+    { 0x30eb, 0xd9 },  // Katakana letter ru: ル
+    { 0x30ec, 0xda },  // Katakana letter re: レ
+    { 0x30ed, 0xdb },  // Katakana letter ro: ロ
+    { 0x30ef, 0xdc },  // Katakana letter wa: ワ
+    { 0x30f3, 0xdd },  // Katakana letter n: ン
+    { 0x03b1, 0xe0 },  // Greek small letter alpha: α
+    { 0x00e4, 0xe1 },  // Latin small letter a with diaeresis: ä
+    { 0x03b2, 0xe2 },  // Greek small letter beta: β
+    { 0x03b5, 0xe3 },  // Greek small letter epsilon: ε
+    { 0x00b5, 0xe4 },  // Micro sign: µ
+    { 0x03bc, 0xe4 },  // Greek small letter mu: μ
+    { 0x03C3, 0xe5 },  // Greek small letter sigma: σ
+    { 0x03c1, 0xe6 },  // Greek small letter rho: ρ
+    { 0x221a, 0xe8 },  // Square root: √
+    { 0x02e3, 0xe9 },  // Modifier letter small x: ˣ
+    { 0x00f6, 0xef },  // Latin small letter o with diaeresis: ö
+    { 0x03b8, 0xf2 },  // Greek small letter theta: θ
+    { 0x221e, 0xf3 },  // Infinity: ∞
+    { 0x03a9, 0xf4 },  // Greek capital letter omega: Ω
+    { 0x00fc, 0xf5 },  // Latin small letter u with diaeresis: ü
+    { 0x03a3, 0xf6 },  // Greek capital letter sigma: Σ
+    { 0x03C0, 0xf7 },  // Greek small letter pi: π
+    { 0x00f7, 0xfd },  // Division sign: ÷
+    { 0x2588, 0xff },  // Full block: █
+};
 
 void NhdCharLcd::set_dimensions(uint8_t columns, uint8_t rows) {
   if (columns <= COLUMNS_MAX && rows <= ROWS_MAX) {
@@ -113,6 +198,7 @@ bool NhdCharLcd::command_(Command cmd) {
   return this->command_(cmd, nullptr, 0);
 }
 
+
 /**
  * 0x00-0x0F are reserved for custom chars.
  * 0x10-0x1F are blank.
@@ -128,32 +214,45 @@ bool NhdCharLcd::command_(Command cmd) {
  * If a map can't be found it sets the specific char to a space char (blank).
  */
 uint8_t NhdCharLcd::unicodeToNhdCode(uint32_t codePoint) {
+  // Directly use custom character
   if (codePoint <= 0x0F) {
     return static_cast<uint8_t>(codePoint);
   }
 
+  // Check if codePoint is stored as a custom character
   for (uint8_t i = 0; i < 8; i++) {
     if (codePoint == this->custom_chars[i].unicode) {
       return i;
     }
   }
 
+  // Check if codePoint is in NHD extended character set
+  auto it = nhd_char_map.find(codePoint);
+  if (it != nhd_char_map.end()) {
+    return it->second;
+  }
+
+  // These are blank in NHD char map
   if (codePoint >= 0x10 && codePoint <= 0x1F) {
     return '?';
   }
 
+  // These are almost ASCII with three exceptions
   if (codePoint >= 0x20 && codePoint <= 0x7F) {
     return static_cast<uint8_t>(codePoint);
   }
 
+  // These are blank in NHD char map
   if (codePoint >= 0x80 && codePoint <= 0x9F) {
     return '?';
   }
 
+  // Directly use NHD extended character set
   if (codePoint >= 0xA0 && codePoint <= 0xFF) {
     return '?';
   }
 
+  // Could not determine character
   return '?';
 }
 

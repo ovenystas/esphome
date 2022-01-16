@@ -2,6 +2,7 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
+#include "esphome/components/display/display_buffer.h"
 
 #ifdef USE_TIME
 #include "esphome/components/time/real_time_clock.h"
@@ -12,7 +13,8 @@ namespace nhd_char_lcd {
 
 struct Command;
 
-class NhdCharLcd : public PollingComponent {
+class NhdCharLcd : public PollingComponent,
+                   public display::DisplayBuffer {
  public:
   virtual ~NhdCharLcd() { }
 

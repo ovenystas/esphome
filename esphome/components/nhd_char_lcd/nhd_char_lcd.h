@@ -125,12 +125,6 @@ class NhdCharLcd : public PollingComponent {
       uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
       uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7);
 
-  // Loads a custom character into LCD memory.
-  void load_custom_character(uint8_t idx);
-
-  // Loads all set custom characters into LCD memory.
-  void load_all_custom_characters();
-
   // Move the whole display left one step.
   void move_display_left();
 
@@ -157,6 +151,12 @@ class NhdCharLcd : public PollingComponent {
 
 
  protected:
+  // Loads a custom character into LCD memory.
+  void load_custom_character(uint8_t idx);
+
+  // Loads all set custom characters into LCD memory.
+  void load_all_custom_characters();
+
   // Sends a command with no parameters.
   bool command_(Command cmd);
 

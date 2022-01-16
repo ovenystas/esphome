@@ -1,5 +1,6 @@
 #pragma once
 
+#include "esphome/core/color.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 #include "esphome/components/display/display_buffer.h"
@@ -28,6 +29,12 @@ public:
   void update() override;
 
   void display();
+
+  void fill(Color color) override {
+    if (color.raw_32 == 0) { // COLOR_OFF
+      this->clear_buffer();
+    }
+  }
 
   // Clear screen buffer.
   void clear_buffer();

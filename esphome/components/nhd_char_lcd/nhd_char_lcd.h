@@ -15,7 +15,7 @@ struct Command;
 
 class NhdCharLcd : public PollingComponent,
                    public display::DisplayBuffer {
- public:
+public:
   virtual ~NhdCharLcd() { }
 
   // Set screen dimensions.
@@ -151,8 +151,19 @@ class NhdCharLcd : public PollingComponent,
   // Display the current I2C address on screen.
   void display_i2c_address();
 
+  void draw_absolute_pixel_internal(int x, int y, Color color) override {
+    // Dummy
+  }
 
- protected:
+  int get_height_internal() override {
+    return 0;  // Dummy
+  }
+
+  int get_width_internal() override {
+    return 0; // Dummy
+  }
+
+protected:
   // Loads a custom character into LCD memory.
   void load_custom_character(uint8_t idx);
 

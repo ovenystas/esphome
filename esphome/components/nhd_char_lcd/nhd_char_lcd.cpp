@@ -173,8 +173,7 @@ void HOT NhdCharLcd::display() {
 
 void NhdCharLcd::update() {
   ESP_LOGD(TAG, "update, Begin");
-  this->clear_buffer();
-  this->call_writer();
+  this->do_update_();
   this->display();
   ESP_LOGD(TAG, "update, End");
 }

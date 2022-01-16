@@ -138,7 +138,8 @@ void NhdCharLcd::set_dimensions(uint8_t columns, uint8_t rows) {
 }
 
 void NhdCharLcd::setup() {
-  this->buffer_ = new uint8_t[this->positions_];  // NOLINT
+  this->buffer_ = new uint8_t[this->positions_];
+  ESP_LOGD(TAG, "setup, Buffer of size %u created", this->positions_);
   this->clear_buffer();
 
   // Commands can only be sent 100ms after boot-up, so let's wait if not passed
@@ -155,6 +156,7 @@ void NhdCharLcd::setup() {
 
   this->load_all_custom_characters();
   this->clear_screen();
+  ESP_LOGD(TAG, "setup, Done");
 }
 
 float NhdCharLcd::get_setup_priority() const {
@@ -170,9 +172,11 @@ void HOT NhdCharLcd::display() {
 }
 
 void NhdCharLcd::update() {
+  ESP_LOGD(TAG, "update, Begin");
   this->clear_buffer();
   this->call_writer();
   this->display();
+  ESP_LOGD(TAG, "update, End");
 }
 
 bool NhdCharLcd::command_(Command cmd, uint8_t* params, size_t length) {
@@ -263,21 +267,26 @@ uint8_t NhdCharLcd::unicodeToNhdCode(uint32_t codePoint) {
  */
 uint8_t NhdCharLcd::utf8Decode(const char* str, uint32_t* codePoint) {
   uint32_t cp = '?'; // Default to space char ('?' during debug)
-  uint8_t num_bytes;
+  uint8_t num_bytes = 0;
 
   if ((str[0] & 0x80) == 0x00) {
+    // Single byte UTF-8 code
     cp = str[0];
     num_bytes = 1;
   } else if ((str[0] & 0xE0) == 0xC0 && (str[1] & 0xC0) == 0x80) {
+    // 2-byte of UTF-8 code
     cp = ((str[0] & 0x1F) << 6) + (str[1] & 0x3F);
     num_bytes = 2;
   } else if ((str[0] & 0xF0) == 0xE0 && (str[1] & 0xC0) == 0x80 && (str[2] & 0xC0) == 0x80) {
+    // 3-byte of UTF-8 code
     cp = ((str[0] & 0x0F) << 12) + ((str[1] & 0x3F) << 6) + (str[2] & 0x3F);
     num_bytes = 3;
   } else if ((str[0] & 0xF8) == 0xF0 && (str[1] & 0xC0) == 0x80 && (str[2] & 0xC0) == 0x80 && (str[3] & 0xC0) == 0x80) {
+    // 4-byte of UTF-8 code
     cp = ((str[0] & 0x07) << 18) + ((str[1] & 0x3F) << 12) + ((str[2] & 0x3F) << 6) + (str[3] & 0x3F);
     num_bytes = 4;
   } else {
+    // Invalid UTF-8 code
     ESP_LOGW(TAG, "utf8Decode, Invalid UTF-8 chars 0x%02x%02x%02x%02x",
         str[0], str[1], str[2], str[3]);
     return 0;
@@ -293,6 +302,10 @@ uint8_t NhdCharLcd::utf8Decode(const char* str, uint32_t* codePoint) {
 
 void NhdCharLcd::print(uint8_t column, uint8_t row, const char* str) {
   ESP_LOGD(TAG, "print, \"%s\" at pos %u,%u", str, column, row);
+  if (this->buffer_ == nullptr) {
+    ESP_LOGE(TAG, "buffer_ is not allocated!");
+    return;
+  }
   uint8_t pos = row * this->columns_ + column;
   while (*str != '\0') {
     if (*str == '\n') {
@@ -314,8 +327,14 @@ void NhdCharLcd::print(uint8_t column, uint8_t row, const char* str) {
       break;
     }
 
-    this->buffer_[pos++] = unicodeToNhdCode(codePoint);
+    uint8_t c = unicodeToNhdCode(codePoint);
+
+//    ESP_LOGD(TAG, "print, Putting U%08X 0x%02X %c in buffer_[%u]",
+//        codePoint, c, (c >= 20 && c < 128) ? static_cast<char>(c) : '?', pos);
+    this->buffer_[pos] = c;
+
     str += decodedBytes;
+    ++pos;
   }
 }
 

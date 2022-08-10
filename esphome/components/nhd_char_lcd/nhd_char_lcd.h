@@ -170,6 +170,10 @@ public:
     return 0; // Dummy
   }
 
+  display::DisplayType get_display_type() override {
+	  return display::DisplayType::DISPLAY_TYPE_BINARY;
+  }
+
 protected:
   // Loads a custom character into LCD memory.
   void load_custom_character(uint8_t idx);
